@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+$:.unshift File.expand_path('../../app', __FILE__)
+
+require 'checkout'
+require 'product'
+Dir[File.expand_path('../../app/rules/*.rb',__FILE__)].each do |path|
+  require path
+end
+
+puts 'Type "exit" to exit'
+
+products = {
+  '001' => Product.new(code: '001', name: 'Travel Card Holder', price: 9.25),
+  '002' => Product.new(code: '002', name: 'Personalised cufflinks', price: 45.00),
+  '003' => Product.new(code: '003', name: 'Kids T-shirt', price: 19.95)
+}
+
+def print_product_list(products)
+  puts "Available products:"
+  products.each do |product|
+    puts product
+  end
+end
+
+checkout = Checkout.new([
+  BasketTotalDiscount.new(basket_minimum: 60.00, discount: 0.10),
+  PerItemQuantityDiscount.new(
+    product_code: '001',
+    discount: Proc.new{|item_count, product| item_count >= 2 ? item_count * (product.price - 8.50) : 0 }
+  )
+])
+print_product_list(products)
+puts 'Scan product code'
+print 'scan -> '
+while cmd = gets.chomp and cmd != 'exit'
+  if products.key?(cmd)
+    checkout.scan(products[cmd])
+    puts "Basket total: #{checkout.basket_total}  Total: #{checkout.total}"
+  else
+    puts "Unknown product"
+    print_product_list(products)
+  end
+  print 'scan -> '
+end
